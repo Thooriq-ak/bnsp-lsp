@@ -5,6 +5,11 @@ pipeline {
         githubPush()
     }
 
+    environment {
+        DOCKERHUB_USER = "nepatoroo"
+        IMAGE_NAME     = "bnsp"
+    }
+
     stages {
 
         stage('Checkout') {
@@ -21,37 +26,46 @@ pipeline {
 
         stage('Test') {
             steps {
-                echo 'Pseudo-test: list file'
-                bat 'dir'
-            }
-        }
-
-        stage('Deploy to Folder') {
-            steps {
-                echo 'Copy file ke folder web lokal'
-                bat """
-                    del /q C:\\deploy\\*
-                    xcopy * C:\\deploy\\ /E /Y
-                """
+                echo 'Listing file'
+                sh 'ls -lah'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image based on your Dockerfile...'
-                bat """
-                    docker build -t my-static-web:latest .
+                sh """
+                    docker build -t \$DOCKERHUB_USER/\$IMAGE_NAME:latest .
                 """
             }
         }
 
-        stage('Update Docker Container') {
+        stage('Login Docker Hub') {
             steps {
-                echo 'Restarting container with new image...'
-                bat """
-                    docker stop my-web || echo No existing container
-                    docker rm my-web || echo No container to remove
-                    docker run -d -p 8085:80 --name my-web my-static-web:latest
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-cred',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    sh "echo \$PASS | docker login -u \$USER --password-stdin"
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh """
+                    docker push \$DOCKERHUB_USER/\$IMAGE_NAME:latest
+                """
+            }
+        }
+
+        stage('Deploy Container') {
+            steps {
+                sh """
+                    docker stop bnsp || true
+                    docker rm bnsp || true
+                    docker pull \$DOCKERHUB_USER/\$IMAGE_NAME:latest
+                    docker run -d -p 8085:80 --name bnsp \$DOCKERHUB_USER/\$IMAGE_NAME:latest
                 """
             }
         }
@@ -60,10 +74,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline sukses! Folder dan Docker terupdate.'
+            echo 'SUKSES: Docker Hub & Container sudah terupdate!'
         }
         failure {
-            echo 'Pipeline gagal! Cek log.'
+            echo 'Pipeline gagal!'
         }
     }
 }
