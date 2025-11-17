@@ -34,7 +34,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh """
-                    docker build -t \$DOCKERHUB_USER/\$IMAGE_NAME:latest .
+                    docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:latest .
                 """
             }
         }
@@ -46,7 +46,7 @@ pipeline {
                     usernameVariable: 'USER',
                     passwordVariable: 'PASS'
                 )]) {
-                    sh "echo \$PASS | docker login -u \$USER --password-stdin"
+                    sh "echo ${PASS} | docker login -u ${USER} --password-stdin"
                 }
             }
         }
@@ -54,7 +54,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 sh """
-                    docker push \$DOCKERHUB_USER/\$IMAGE_NAME:latest
+                    docker push ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                 """
             }
         }
@@ -64,21 +64,11 @@ pipeline {
                 sh """
                     docker stop bnsp || true
                     docker rm bnsp || true
-                    docker pull \$DOCKERHUB_USER/\$IMAGE_NAME:latest
-                    docker run -d -p 8085:80 --name bnsp \$DOCKERHUB_USER/\$IMAGE_NAME:latest
+                    docker pull ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+                    docker run -d -p 8085:80 --name bnsp ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                 """
             }
         }
-
-        stage('Login Docker Hub') {
-        steps {
-            withCredentials([usernamePassword(credentialsId: 'dockerhub-cred', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-            }
-        }
-    }
-
-
     }
 
     post {
