@@ -65,7 +65,7 @@ pipeline {
                     docker stop bnsp || true
                     docker rm bnsp || true
                     docker pull ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
-                    docker run -d -p 8085:80 --name bnsp ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
+                    docker run -d -p 80:80 --name bnsp ${DOCKERHUB_USER}/${IMAGE_NAME}:latest
                 """
             }
         }
